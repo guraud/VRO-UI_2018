@@ -1,0 +1,6 @@
+Common.Logging.dll
+Devart.Data.dll
+Devart.Data.Oracle.dll
+Spring.Core.dll
+
+위의 4개 dll파일은 프로젝트 설정에서 참조 추가하여 사용하여야 함.

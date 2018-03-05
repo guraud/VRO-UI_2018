@@ -1,0 +1,170 @@
+﻿<!DOCTYPE html>
+<script language="javascript" src=".\source\planetxsdk.js"></script>
+<script language="javascript" src="https://api2.sktelecom.com/tmap/js?version=1&format=javascript&appKey=e08bb672-1bc9-4428-a525-dfaf90e6beb2"></script>
+<script type="text/javascript">
+    var routes;
+    var map;
+    var routeLayers;
+
+    function getParameter(strParamName) {
+        var arrResult = null;
+        if(strParamName){
+            arrResult = location.search.match(new RegExp("[&?]" + strParamName + "=(.*?)(&|$)"));
+        }
+        return arrResult && arrResult[1] ? arrResult[1] : null;
+    }
+
+
+    function initialize() {
+
+        //window.external.ActivateControls(); //C# 호출할 때
+        routeLayers = new Array();
+
+        var width = getParameter("width") + "px";
+        var height = getParameter("height") + "px";
+        map = new Tmap.Map({ div: "map_div", width: width, height: height, transitionEffect: "resize", animation: true });
+        map.setCenter(new Tmap.LonLat(14135893.887852, 4518348.1852606), 14);
+
+        map.addControl(new Tmap.Control.KeyboardDefaults());
+        //map.addControl(new Tmap.Control.MousePosition());
+        //map.addControl(new Tmap.Control. OverviewMap());
+
+        // Marker 표시
+        //var markerLayer = new Tmap.Layer.Markers();
+        //map.addLayer(markerLayer);
+        //var lonlat = new Tmap.LonLat(14135893.887852, 4518348.1852606);
+        //var size = new Tmap.Size(22, 30);
+        //var offset = new Tmap.Pixel(-(size.w / 2), -(size.h));
+        ////var icon = new Tmap.Icon('img/ico_spot.png', size, offset);
+        ////var icon = new Tmap.Icon('.\source\Marker-Outside-Azure.png', size, offset);
+        //var icon = new Tmap.IconHtml("<img src= '/source/Marker-Outside-Azure.png'></img>", size, offset);
+        //var marker = new Tmap.Marker(lonlat, icon);
+        //markerLayer.addMarker(marker);
+
+        // 경로를 그린다.
+        window.external.drawVectors();
+    }
+
+    window.onload = function () {
+        initialize();
+    }
+
+    // WEB to APP
+    var enableForm = function () {
+        window.external.ActivateControls();
+    }
+
+    // APP to WEB
+    var fillFields = function (firstname, lastname, address, phone, email) {
+        //document.getElementById('firstNameTextBox').value = firstname;
+        //document.getElementById('lastNameTextBox').value = lastname;
+        //document.getElementById('addressTextBox').value = address;
+        //document.getElementById('phoneTextBox').value = phone;
+        //document.getElementById('emailTextBox').value = email;
+        //document.getElementById('submit').disabled = "";
+    }
+
+    function setRoutes(routeList) {
+        routes = routeList;
+    }
+
+    //경로 정보 로드
+    function searchRoute(startX, startY, endX, endY, searchOption) {
+        var routeFormat = new Tmap.Format.KML({ extractStyles: true, extractAttributes: true });
+        //var startX = 14129105.461214;
+        //var startY = 4517042.1926406;
+        //var endX = 14136027.789587;
+        //var endY = 4517572.4745242;
+
+        //var startX = 127.1116807;
+        //var startY = 37.2961043;
+        //var endX = 127.0684468;
+        //var endY = 37.3297003;
+
+        //window.alert(startX + ", " + startY + " : " + endX + ", " + endY);
+
+        var pr_3857 = new Tmap.Projection("EPSG:3857"); 
+        var pr_4326 = new Tmap.Projection("EPSG:4326"); // wgs84
+        //var katech = new Tmap.Projection("KATECH"); // KATECH 
+
+        //Transform(원본좌표계, 변환할 좌표계) 함수를 사용하여 좌표를 변환해 줍니다.
+        var startlonlat = new Tmap.LonLat(startX, startY).transform(pr_4326, pr_3857);
+        var endlonlat = new Tmap.LonLat(endX, endY).transform(pr_4326, pr_3857);
+
+        var urlStr = "https://apis.skplanetx.com/tmap/routes?version=1&format=xml";
+        urlStr += "&startX=" + startlonlat.lon;
+        urlStr += "&startY=" + startlonlat.lat;
+        urlStr += "&endX=" + endlonlat.lon;
+        urlStr += "&endY=" + endlonlat.lat;
+        urlStr += "&searchOption=" + searchOption;
+        urlStr += "&appKey=3fcd534f-bf6c-3651-98ba-4b464bfebacf";
+
+        //window.alert(urlStr);
+
+        var prtcl = new Tmap.Protocol.HTTP({
+            url: urlStr,
+            format: routeFormat
+        });
+        var routeLayer = new Tmap.Layer.Vector("route", { protocol: prtcl, strategies: [new Tmap.Strategy.Fixed()] });
+        routeLayer.events.register("featuresadded", routeLayer, onDrawnFeatures);
+
+        //벡터 스타일링 정의
+        //var line = new Tmap.Geometry.LineString(prtcl);
+        //var lineFeature = new Tmap.Feature.Vector(line);
+        //lineFeature.style = {
+        //   strokeColor: "#00FF00",
+        //    strokeWidth: 5,
+        //    strokeDashstyle: "solid"
+        //};
+
+        //var circle = new Tmap.Geometry.Circle(14140677.02860000000, 4508660.76132000000, 1000);
+        //var redFeature = new Tmap.Feature.Vector();
+        //redFeature.style = {
+        //    fillColor: "#FFFF00",
+        //    fillOpacity: 0.2,
+        //    strokeColor: "#FF0000",
+        //    strokeWidth: 3,
+        //    strokeDashstyle: "solid",
+        //    pointRadius: 60,
+        //    title: "this is a red line"
+        //};
+
+        //routeLayer.addFeatures([lineFeature]);
+
+        map.addLayer(routeLayer);
+
+        routeLayers[routeLayers.length] = routeLayer;
+ 
+        map.setCenter(new Tmap.LonLat(startlonlat.lon, startlonlat.lat), 16);
+    }
+
+    function clearRoute() {
+        //window.alert(routeLayers);
+        for (var i = 0; i < routeLayers.length; i++) {
+            map.removeLayer(routeLayers[i]);
+        }
+
+        routeLayers = [];
+    }
+
+    //경로 그리기 후 해당영역으로 줌
+    function onDrawnFeatures(e) {
+        map.zoomToExtent(this.getDataExtent());
+    }
+
+    //var fakeSubmit = function () {
+    //    var firstName = document.getElementById('firstNameTextBox').value;
+    //    var lastName = document.getElementById('lastNameTextBox').value;
+    //    alert('Thank you, ' + firstName + ' ' + lastName + ', for subscribing.');
+    //}
+
+</script>
+<html lang="ko" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="utf-8" />
+    <title></title>
+</head>
+<body>
+    <div id="map_div"></div>
+</body>
+</html>
